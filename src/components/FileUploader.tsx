@@ -43,16 +43,27 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) => {
         setPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    } else if (fileType.includes('text') || fileType === 'application/pdf' || fileType === 'application/json') {
+      // Try to read text from appropriate files
+      const reader = new FileReader();
+      reader.onload = () => {
+        const fileContent = reader.result as string;
+        onFileUploaded({
+          type: fileType.includes('image') ? 'image' : (fileType === 'application/pdf' ? 'pdf' : 'text'),
+          file,
+          text: fileContent,
+          preview: fileType.includes('image') ? URL.createObjectURL(file) : undefined
+        });
+      };
+      reader.readAsText(file);
     } else {
-      setPreview(null);
+      // For other file types, just pass the file without trying to read the content
+      onFileUploaded({
+        type: fileType.includes('image') ? 'image' : (fileType === 'application/pdf' ? 'pdf' : 'text'),
+        file,
+        preview: fileType.includes('image') ? URL.createObjectURL(file) : undefined
+      });
     }
-
-    // Notify parent component
-    onFileUploaded({
-      type: fileType.includes('image') ? 'image' : (fileType === 'application/pdf' ? 'pdf' : 'text'),
-      file,
-      preview: fileType.includes('image') ? URL.createObjectURL(file) : undefined
-    });
 
     toast.success(`File "${file.name}" uploaded successfully!`);
   }, [inputType, onFileUploaded]);

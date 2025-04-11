@@ -8,31 +8,6 @@ import ImageExplainer from '../components/ImageExplainer';
 import { OutputFormat, SummaryResult, UploadedFile } from '../types';
 import { toast } from 'sonner';
 
-// Mock data for demonstration purposes
-const mockSummary: Record<OutputFormat, SummaryResult> = {
-  gist: {
-    format: 'gist',
-    content:
-      'The document discusses artificial intelligence and its impact on modern society. It explores how machine learning algorithms have evolved over the past decade, enabling significant advancements in natural language processing, computer vision, and predictive analytics. The text highlights ethical considerations around AI, including privacy concerns, algorithmic bias, and the future of human-AI collaboration.',
-    keywords: ['artificial intelligence', 'machine learning', 'natural language processing', 'algorithmic bias', 'privacy'],
-  },
-  bullets: {
-    format: 'bullets',
-    content:
-      '• Artificial intelligence has transformed numerous industries in the modern world\n• Machine learning algorithms have evolved significantly over the past decade\n• Natural language processing enables computers to understand human communication\n• Computer vision allows machines to interpret and process visual information\n• Ethical considerations include privacy concerns and algorithmic bias\n• Human-AI collaboration will shape the future of the technology',
-    keywords: ['artificial intelligence', 'machine learning', 'natural language processing', 'algorithmic bias', 'privacy'],
-  },
-  image: {
-    format: 'image',
-    content: 'Visual representation of artificial intelligence concepts',
-    keywords: ['artificial intelligence', 'machine learning', 'neural networks'],
-    imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad781?q=80&w=2532&auto=format&fit=crop',
-  },
-};
-
-const mockImageExplanation = 
-  "This image appears to be a digital visualization related to artificial intelligence or machine learning. It features a network of interconnected nodes or neural pathways represented in a blue color scheme against a dark background. This visual metaphor is commonly used to illustrate how AI systems process information through neural networks - mimicking the way human brains make connections. The bright, glowing points likely represent data or decision points within the AI system.";
-
 const Index = () => {
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('gist');
@@ -56,6 +31,48 @@ const Index = () => {
     setOutputFormat(format);
   };
 
+  const generateMockSummary = (content: string, format: OutputFormat): SummaryResult => {
+    // Extract some keywords from the content
+    const words = content.split(/\s+/);
+    const potentialKeywords = words.filter(word => 
+      word.length > 4 && !['about', 'their', 'there', 'these', 'those', 'which', 'would'].includes(word.toLowerCase())
+    );
+    
+    // Take up to 5 keywords
+    const keywords = Array.from(new Set(
+      potentialKeywords.slice(0, Math.min(potentialKeywords.length, 15))
+    )).slice(0, 5);
+    
+    // Create a basic summary
+    let summaryContent = '';
+    
+    if (format === 'gist') {
+      // Create a paragraph summary
+      summaryContent = `This content discusses ${keywords.join(', ')}. `;
+      summaryContent += `It contains approximately ${words.length} words and covers various aspects related to the main topics.`;
+    } else if (format === 'bullets') {
+      // Create bullet points
+      summaryContent = `• The content is about ${keywords[0] || 'various topics'}\n`;
+      summaryContent += `• It discusses ${keywords[1] || 'several concepts'} and ${keywords[2] || 'related ideas'}\n`;
+      summaryContent += `• ${keywords[3] ? `${keywords[3]} is mentioned as an important element` : 'Various elements are discussed'}\n`;
+      summaryContent += `• The content contains approximately ${words.length} words\n`;
+      summaryContent += `• ${keywords[4] ? `${keywords[4]} is also referenced in the content` : 'Multiple references are made to support the main points'}`;
+    }
+    
+    return {
+      format,
+      content: summaryContent,
+      keywords,
+      ...(format === 'image' && {
+        imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad781?q=80&w=2532&auto=format&fit=crop',
+      }),
+    };
+  };
+  
+  const generateMockImageExplanation = (imageUrl: string): string => {
+    return "This image appears to be a visual representation of content. The details shown in the image may include graphical elements, text, or other visual information that relates to the subject matter. Without more context, it's difficult to provide a specific explanation of what the image contains.";
+  };
+
   const handleGenerateSummary = () => {
     if (!uploadedFile) {
       toast.error('Please upload content first!');
@@ -64,9 +81,13 @@ const Index = () => {
 
     setIsLoading(true);
 
+    // Get the content from the uploaded file
+    const content = uploadedFile.text || `Content from ${uploadedFile.file?.name || 'uploaded file'}`;
+
     // Simulate API call with a timeout
     setTimeout(() => {
-      setSummary(mockSummary[outputFormat]);
+      const mockSummary = generateMockSummary(content, outputFormat);
+      setSummary(mockSummary);
       setIsLoading(false);
       toast.success('Summary generated successfully!');
     }, 2000);
@@ -77,7 +98,8 @@ const Index = () => {
 
     // Simulate API call with a timeout
     setTimeout(() => {
-      setImageExplanation(mockImageExplanation);
+      const explanation = generateMockImageExplanation(imageUrl);
+      setImageExplanation(explanation);
       setIsExplaining(false);
       toast.success('Image explained successfully!');
     }, 2000);

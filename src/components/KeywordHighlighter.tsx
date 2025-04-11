@@ -25,7 +25,10 @@ const KeywordHighlighter: React.FC<KeywordHighlighterProps> = ({ text, keywords 
         );
         
         return isKeyword ? (
-          <span key={i} className="keyword-highlight">
+          <span 
+            key={i} 
+            className="bg-gistify-100 text-gistify-700 px-1 rounded font-medium"
+          >
             {part}
           </span>
         ) : (
