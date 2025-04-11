@@ -1,170 +1,170 @@
 
-import React, { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import React, { useState } from 'react';
+import Header from '../components/Header';
+import FileUploader from '../components/FileUploader';
+import OutputFormatSelector from '../components/OutputFormatSelector';
+import SummaryDisplay from '../components/SummaryDisplay';
+import ImageExplainer from '../components/ImageExplainer';
+import { OutputFormat, SummaryResult, UploadedFile } from '../types';
+import { toast } from 'sonner';
 
 const Index = () => {
-  const [inputText, setInputText] = useState("");
-  const [gist, setGist] = useState("");
-  const [bulletPoints, setBulletPoints] = useState<string[]>([]);
-  const [keywords, setKeywords] = useState<string[]>([]);
+  const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>('gist');
+  const [summary, setSummary] = useState<SummaryResult | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [imageExplanation, setImageExplanation] = useState<string | null>(null);
+  const [isExplaining, setIsExplaining] = useState(false);
 
-  // Generate summaries when input text changes
-  useEffect(() => {
-    if (inputText.trim()) {
-      generateSummary(inputText);
-    } else {
-      setGist("");
-      setBulletPoints([]);
-      setKeywords([]);
+  const handleFileUploaded = (file: UploadedFile) => {
+    setUploadedFile(file);
+    setSummary(null);
+    setImageExplanation(null);
+
+    // If image is uploaded, automatically trigger image explanation
+    if (file.type === 'image' && file.preview) {
+      handleExplainImage(file.preview);
     }
-  }, [inputText]);
-
-  // Function to generate summary from input text
-  const generateSummary = (text: string) => {
-    // Extract keywords (simple implementation - extract words longer than 4 chars that aren't common)
-    const stopWords = new Set([
-      "about", "above", "after", "again", "against", "all", "and", "any", "are", "because", 
-      "been", "before", "being", "below", "between", "both", "but", "can", "did", "does", 
-      "doing", "down", "during", "each", "few", "for", "from", "further", "had", "has", 
-      "have", "having", "her", "here", "hers", "herself", "him", "himself", "his", "how", 
-      "into", "its", "itself", "just", "more", "most", "myself", "nor", "now", "off", 
-      "once", "only", "other", "our", "ours", "ourselves", "out", "over", "own", "same", 
-      "she", "should", "some", "such", "than", "that", "the", "their", "theirs", "them", 
-      "themselves", "then", "there", "these", "they", "this", "those", "through", "too", 
-      "under", "until", "very", "was", "were", "what", "when", "where", "which", "while", 
-      "who", "whom", "why", "will", "with", "you", "your", "yours", "yourself", "yourselves"
-    ]);
-
-    const words = text.toLowerCase().match(/\b\w{4,}\b/g) || [];
-    const extractedKeywords = [...new Set(words.filter(word => !stopWords.has(word)))].slice(0, 10);
-    setKeywords(extractedKeywords);
-
-    // Create gist (shortened version of the text)
-    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    const shortGist = sentences.length > 1 
-      ? sentences.slice(0, 2).join(". ") + "." 
-      : text.length > 100 
-        ? text.substring(0, 100) + "..." 
-        : text;
-    setGist(shortGist);
-
-    // Create bullet points - extract key sentences or split by concepts
-    let points: string[] = [];
-    if (sentences.length > 1) {
-      points = sentences
-        .filter(s => s.trim().length > 3)
-        .slice(0, 5)
-        .map(s => s.trim());
-    } else {
-      // If only one sentence, try to break it into phrases
-      const phrases = text.split(/[,;]/g).filter(p => p.trim().length > 0);
-      points = phrases.slice(0, 3).map(p => p.trim());
-    }
-    setBulletPoints(points);
   };
 
-  // Function to highlight keywords in text
-  const highlightKeywords = (text: string) => {
-    if (!text || keywords.length === 0) return text;
+  const handleFormatChange = (format: OutputFormat) => {
+    setOutputFormat(format);
+  };
+
+  const generateMockSummary = (content: string, format: OutputFormat): SummaryResult => {
+    // Extract more meaningful keywords from the content
+    const words = content.split(/\s+/);
     
-    let highlightedText = text;
-    keywords.forEach(keyword => {
-      const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
-      highlightedText = highlightedText.replace(
-        regex, 
-        match => `<span class="bg-blue-100 dark:bg-blue-900 px-1 rounded">${match}</span>`
-      );
-    });
+    // Filter out common words and focus on potentially meaningful ones
+    const stopWords = ['about', 'their', 'there', 'these', 'those', 'which', 'would', 
+      'from', 'have', 'with', 'this', 'that', 'they', 'will', 'more', 'some', 'what', 'when'];
     
-    return highlightedText;
+    const potentialKeywords = words.filter(word => 
+      word.length > 4 && !stopWords.includes(word.toLowerCase())
+    );
+    
+    // Take a few relevant keywords
+    const uniqueKeywords = Array.from(new Set(potentialKeywords.map(k => k.toLowerCase())));
+    const keywords = uniqueKeywords.slice(0, Math.min(uniqueKeywords.length, 5));
+    
+    // Create a more concise summary based on format
+    let summaryContent = '';
+    
+    if (format === 'gist') {
+      // Create a concise paragraph summary
+      const wordCount = Math.min(words.length, 300);
+      
+      summaryContent = `Key focus: ${keywords.slice(0, 3).join(', ')}. `;
+      summaryContent += `This ${wordCount}-word content covers ${keywords.slice(0, 2).join(' and ')} `;
+      summaryContent += `with emphasis on ${keywords[keywords.length - 1] || 'relevant topics'}.`;
+    } else if (format === 'bullets') {
+      // Create concise bullet points
+      summaryContent = `• Main topic: ${keywords[0] || 'Subject matter'}\n`;
+      summaryContent += `• Key aspects: ${keywords.slice(1, 3).join(', ') || 'Various elements'}\n`;
+      summaryContent += `• Important points: ${keywords.slice(3, 5).join(', ') || 'Additional considerations'}\n`;
+      summaryContent += `• Scope: ${words.length} words covering essential information`;
+    }
+    
+    return {
+      format,
+      content: summaryContent,
+      keywords,
+      ...(format === 'image' && {
+        imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad781?q=80&w=2532&auto=format&fit=crop',
+      }),
+    };
+  };
+  
+  const generateMockImageExplanation = (imageUrl: string): string => {
+    return "This image shows visual content that may contain text, diagrams, or illustrations relevant to the subject matter. The key elements appear to relate to the main topic, with visual cues highlighting important information.";
+  };
+
+  const handleGenerateSummary = () => {
+    if (!uploadedFile) {
+      toast.error('Please upload content first!');
+      return;
+    }
+
+    setIsLoading(true);
+
+    // Get the content from the uploaded file
+    const content = uploadedFile.text || `Content from ${uploadedFile.file?.name || 'uploaded file'}`;
+
+    // Simulate API call with a timeout
+    setTimeout(() => {
+      const mockSummary = generateMockSummary(content, outputFormat);
+      setSummary(mockSummary);
+      setIsLoading(false);
+      toast.success('Summary generated successfully!');
+    }, 2000);
+  };
+
+  const handleExplainImage = (imageUrl: string) => {
+    setIsExplaining(true);
+
+    // Simulate API call with a timeout
+    setTimeout(() => {
+      const explanation = generateMockImageExplanation(imageUrl);
+      setImageExplanation(explanation);
+      setIsExplaining(false);
+      toast.success('Image explained successfully!');
+    }, 2000);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-12">
-      <div className="container mx-auto px-4">
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Real-time Text Summarizer
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Header />
+      <main className="flex-1 container py-8 px-4 mx-auto max-w-5xl">
+        <div className="grid grid-cols-1 gap-6">
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            <h1 className="text-3xl font-bold text-gistify-600">
+              Simplify and Visualize Your Content
             </h1>
-            <p className="text-lg text-gray-600 dark:text-gray-300">
-              Enter your text below and instantly get a concise summary and key points
-            </p>
+            <span className="px-3 py-1 bg-gistify-100 text-gistify-500 rounded-full text-sm font-medium">
+              Beta
+            </span>
           </div>
+          <p className="text-muted-foreground">
+            Upload text, PDFs, or images and get concise summaries, bullet points, 
+            or visual representations. Gistify helps you extract the essence of information quickly.
+          </p>
 
-          <div className="space-y-6">
-            <div>
-              <Label htmlFor="input-text" className="text-lg">Your Text</Label>
-              <Textarea
-                id="input-text"
-                placeholder="Enter or paste your text here..."
-                className="h-40 mt-2 text-base"
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
+          <FileUploader onFileUploaded={handleFileUploaded} />
+
+          {uploadedFile && (
+            <>
+              <OutputFormatSelector
+                selectedFormat={outputFormat}
+                onFormatChange={handleFormatChange}
               />
-            </div>
 
-            {(gist || bulletPoints.length > 0) && (
-              <div className="space-y-6 mt-8 animate-in fade-in">
-                <Card className="p-6">
-                  <h2 className="text-xl font-semibold mb-4">Gist</h2>
-                  <div 
-                    className="text-base text-gray-700 dark:text-gray-300"
-                    dangerouslySetInnerHTML={{ __html: highlightKeywords(gist) }}
-                  />
-                </Card>
-
-                {bulletPoints.length > 0 && (
-                  <Card className="p-6">
-                    <h2 className="text-xl font-semibold mb-4">Key Points</h2>
-                    <ul className="list-disc pl-6 space-y-2">
-                      {bulletPoints.map((point, index) => (
-                        <li 
-                          key={index} 
-                          className="text-base text-gray-700 dark:text-gray-300"
-                          dangerouslySetInnerHTML={{ __html: highlightKeywords(point) }}
-                        />
-                      ))}
-                    </ul>
-                  </Card>
-                )}
-
-                {keywords.length > 0 && (
-                  <div className="mt-4">
-                    <details className="text-sm">
-                      <summary className="cursor-pointer text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
-                        Keywords detected ({keywords.length})
-                      </summary>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {keywords.map((keyword, index) => (
-                          <span 
-                            key={index}
-                            className="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs"
-                          >
-                            {keyword}
-                          </span>
-                        ))}
-                      </div>
-                    </details>
-                  </div>
-                )}
+              <div className="flex justify-center">
+                <button
+                  onClick={handleGenerateSummary}
+                  className="bg-gistify-300 hover:bg-gistify-400 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+                >
+                  Generate Summary
+                </button>
               </div>
-            )}
 
-            {!inputText && (
-              <div className="text-center p-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg mt-4">
-                <p className="text-gray-500 dark:text-gray-400">
-                  Enter some text to see the real-time summary
-                </p>
-              </div>
-            )}
-          </div>
+              <SummaryDisplay summary={summary} isLoading={isLoading} />
+
+              {uploadedFile.type === 'image' && uploadedFile.preview && (
+                <ImageExplainer
+                  imageUrl={uploadedFile.preview}
+                  explanation={imageExplanation}
+                  isLoading={isExplaining}
+                />
+              )}
+            </>
+          )}
         </div>
-      </div>
+      </main>
+      <footer className="py-6 border-t bg-white">
+        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+          <p>© 2025 Gistify - All rights reserved</p>
+        </div>
+      </footer>
     </div>
   );
 };
