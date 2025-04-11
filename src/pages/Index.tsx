@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Header from '../components/Header';
 import FileUploader from '../components/FileUploader';
@@ -21,7 +20,6 @@ const Index = () => {
     setSummary(null);
     setImageExplanation(null);
 
-    // If image is uploaded, automatically trigger image explanation
     if (file.type === 'image' && file.preview) {
       handleExplainImage(file.preview);
     }
@@ -32,37 +30,57 @@ const Index = () => {
   };
 
   const generateMockSummary = (content: string, format: OutputFormat): SummaryResult => {
-    // Extract more meaningful keywords from the content
     const words = content.split(/\s+/);
     
-    // Filter out common words and focus on potentially meaningful ones
-    const stopWords = ['about', 'their', 'there', 'these', 'those', 'which', 'would', 
-      'from', 'have', 'with', 'this', 'that', 'they', 'will', 'more', 'some', 'what', 'when'];
+    const stopWords = [
+      'about', 'after', 'all', 'also', 'an', 'and', 'any', 'are', 'as', 'at', 'be', 'because', 
+      'been', 'before', 'being', 'between', 'both', 'but', 'by', 'came', 'can', 'come', 'could', 
+      'did', 'do', 'does', 'each', 'for', 'from', 'get', 'got', 'has', 'had', 'he', 'have', 'her', 
+      'here', 'him', 'himself', 'his', 'how', 'if', 'in', 'into', 'is', 'it', 'its', 'just', 'like', 
+      'make', 'many', 'me', 'might', 'more', 'most', 'much', 'must', 'my', 'never', 'now', 'of', 
+      'on', 'only', 'or', 'other', 'our', 'out', 'over', 'said', 'same', 'see', 'should', 'since', 
+      'some', 'still', 'such', 'take', 'than', 'that', 'the', 'their', 'them', 'then', 'there', 
+      'these', 'they', 'this', 'those', 'through', 'to', 'too', 'under', 'up', 'very', 'was', 'way', 
+      'we', 'well', 'were', 'what', 'where', 'which', 'while', 'who', 'with', 'would', 'you', 'your'
+    ];
     
     const potentialKeywords = words.filter(word => 
-      word.length > 4 && !stopWords.includes(word.toLowerCase())
+      word.length > 3 && !stopWords.includes(word.toLowerCase())
     );
     
-    // Take a few relevant keywords
     const uniqueKeywords = Array.from(new Set(potentialKeywords.map(k => k.toLowerCase())));
-    const keywords = uniqueKeywords.slice(0, Math.min(uniqueKeywords.length, 5));
+    const keywords = uniqueKeywords.slice(0, Math.min(uniqueKeywords.length, 8));
     
-    // Create a more concise summary based on format
     let summaryContent = '';
     
     if (format === 'gist') {
-      // Create a concise paragraph summary
-      const wordCount = Math.min(words.length, 300);
+      summaryContent = `Main focus: ${keywords.slice(0, 3).join(', ')}. `;
       
-      summaryContent = `Key focus: ${keywords.slice(0, 3).join(', ')}. `;
-      summaryContent += `This ${wordCount}-word content covers ${keywords.slice(0, 2).join(' and ')} `;
-      summaryContent += `with emphasis on ${keywords[keywords.length - 1] || 'relevant topics'}.`;
+      if (keywords.length >= 3) {
+        summaryContent += `Content discusses ${keywords[0]} in relation to ${keywords[1]} and ${keywords[2]}. `;
+      }
+      
+      if (keywords.length > 3) {
+        summaryContent += `Also covers ${keywords.slice(3, 6).join(', ')}. `;
+      }
+      
+      summaryContent += `Approximately ${words.length} words total.`;
     } else if (format === 'bullets') {
-      // Create concise bullet points
-      summaryContent = `• Main topic: ${keywords[0] || 'Subject matter'}\n`;
-      summaryContent += `• Key aspects: ${keywords.slice(1, 3).join(', ') || 'Various elements'}\n`;
-      summaryContent += `• Important points: ${keywords.slice(3, 5).join(', ') || 'Additional considerations'}\n`;
-      summaryContent += `• Scope: ${words.length} words covering essential information`;
+      const mainPoint = keywords[0] || 'Main topic';
+      const secondaryPoints = keywords.slice(1, 4);
+      const tertiaryPoints = keywords.slice(4, 7);
+      
+      summaryContent = `• ${mainPoint}: Core subject\n`;
+      
+      if (secondaryPoints.length > 0) {
+        summaryContent += `• Key aspects: ${secondaryPoints.join(', ')}\n`;
+      }
+      
+      if (tertiaryPoints.length > 0) {
+        summaryContent += `• Additional elements: ${tertiaryPoints.join(', ')}\n`;
+      }
+      
+      summaryContent += `• Length: ${words.length} words`;
     }
     
     return {
@@ -76,7 +94,7 @@ const Index = () => {
   };
   
   const generateMockImageExplanation = (imageUrl: string): string => {
-    return "This image shows visual content that may contain text, diagrams, or illustrations relevant to the subject matter. The key elements appear to relate to the main topic, with visual cues highlighting important information.";
+    return "This image contains visual information that appears to represent key concepts related to the topic. The main elements highlight important details that support understanding the context.";
   };
 
   const handleGenerateSummary = () => {
@@ -87,10 +105,8 @@ const Index = () => {
 
     setIsLoading(true);
 
-    // Get the content from the uploaded file
     const content = uploadedFile.text || `Content from ${uploadedFile.file?.name || 'uploaded file'}`;
 
-    // Simulate API call with a timeout
     setTimeout(() => {
       const mockSummary = generateMockSummary(content, outputFormat);
       setSummary(mockSummary);
@@ -102,7 +118,6 @@ const Index = () => {
   const handleExplainImage = (imageUrl: string) => {
     setIsExplaining(true);
 
-    // Simulate API call with a timeout
     setTimeout(() => {
       const explanation = generateMockImageExplanation(imageUrl);
       setImageExplanation(explanation);
