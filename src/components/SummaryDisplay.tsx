@@ -4,6 +4,7 @@ import { SummaryResult } from '../types';
 import KeywordHighlighter from './KeywordHighlighter';
 import { Download, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface SummaryDisplayProps {
   summary: SummaryResult | null;
@@ -12,6 +13,7 @@ interface SummaryDisplayProps {
 
 const SummaryDisplay: React.FC<SummaryDisplayProps> = ({ summary, isLoading }) => {
   const [copied, setCopied] = React.useState(false);
+  const [expanded, setExpanded] = React.useState(false);
 
   const handleCopy = () => {
     if (!summary) return;
@@ -70,9 +72,9 @@ const SummaryDisplay: React.FC<SummaryDisplayProps> = ({ summary, isLoading }) =
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold">
           {summary.format === 'gist'
-            ? 'Text Summary'
+            ? 'Concise Summary'
             : summary.format === 'bullets'
-            ? 'Bullet Points'
+            ? 'Key Bullet Points'
             : 'Visual Summary'}
         </h2>
         <div className="flex gap-2">
@@ -126,6 +128,32 @@ const SummaryDisplay: React.FC<SummaryDisplayProps> = ({ summary, isLoading }) =
           </p>
         )}
       </div>
+      
+      {summary.keywords.length > 0 && (
+        <div className="mt-4">
+          <Collapsible
+            open={expanded}
+            onOpenChange={setExpanded}
+            className="w-full"
+          >
+            <CollapsibleTrigger className="flex items-center text-sm text-gistify-500 hover:text-gistify-600">
+              {expanded ? "Hide keywords" : "Show keywords"}
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-2">
+              <div className="flex flex-wrap gap-2">
+                {summary.keywords.map((keyword, index) => (
+                  <span 
+                    key={index}
+                    className="px-2 py-1 bg-gistify-100 text-gistify-600 rounded text-xs"
+                  >
+                    {keyword}
+                  </span>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
+      )}
     </div>
   );
 };

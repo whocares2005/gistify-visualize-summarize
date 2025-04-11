@@ -32,31 +32,37 @@ const Index = () => {
   };
 
   const generateMockSummary = (content: string, format: OutputFormat): SummaryResult => {
-    // Extract some keywords from the content
+    // Extract more meaningful keywords from the content
     const words = content.split(/\s+/);
+    
+    // Filter out common words and focus on potentially meaningful ones
+    const stopWords = ['about', 'their', 'there', 'these', 'those', 'which', 'would', 
+      'from', 'have', 'with', 'this', 'that', 'they', 'will', 'more', 'some', 'what', 'when'];
+    
     const potentialKeywords = words.filter(word => 
-      word.length > 4 && !['about', 'their', 'there', 'these', 'those', 'which', 'would'].includes(word.toLowerCase())
+      word.length > 4 && !stopWords.includes(word.toLowerCase())
     );
     
-    // Take up to 5 keywords
-    const keywords = Array.from(new Set(
-      potentialKeywords.slice(0, Math.min(potentialKeywords.length, 15))
-    )).slice(0, 5);
+    // Take a few relevant keywords
+    const uniqueKeywords = Array.from(new Set(potentialKeywords.map(k => k.toLowerCase())));
+    const keywords = uniqueKeywords.slice(0, Math.min(uniqueKeywords.length, 5));
     
-    // Create a basic summary
+    // Create a more concise summary based on format
     let summaryContent = '';
     
     if (format === 'gist') {
-      // Create a paragraph summary
-      summaryContent = `This content discusses ${keywords.join(', ')}. `;
-      summaryContent += `It contains approximately ${words.length} words and covers various aspects related to the main topics.`;
+      // Create a concise paragraph summary
+      const wordCount = Math.min(words.length, 300);
+      
+      summaryContent = `Key focus: ${keywords.slice(0, 3).join(', ')}. `;
+      summaryContent += `This ${wordCount}-word content covers ${keywords.slice(0, 2).join(' and ')} `;
+      summaryContent += `with emphasis on ${keywords[keywords.length - 1] || 'relevant topics'}.`;
     } else if (format === 'bullets') {
-      // Create bullet points
-      summaryContent = `• The content is about ${keywords[0] || 'various topics'}\n`;
-      summaryContent += `• It discusses ${keywords[1] || 'several concepts'} and ${keywords[2] || 'related ideas'}\n`;
-      summaryContent += `• ${keywords[3] ? `${keywords[3]} is mentioned as an important element` : 'Various elements are discussed'}\n`;
-      summaryContent += `• The content contains approximately ${words.length} words\n`;
-      summaryContent += `• ${keywords[4] ? `${keywords[4]} is also referenced in the content` : 'Multiple references are made to support the main points'}`;
+      // Create concise bullet points
+      summaryContent = `• Main topic: ${keywords[0] || 'Subject matter'}\n`;
+      summaryContent += `• Key aspects: ${keywords.slice(1, 3).join(', ') || 'Various elements'}\n`;
+      summaryContent += `• Important points: ${keywords.slice(3, 5).join(', ') || 'Additional considerations'}\n`;
+      summaryContent += `• Scope: ${words.length} words covering essential information`;
     }
     
     return {
@@ -70,7 +76,7 @@ const Index = () => {
   };
   
   const generateMockImageExplanation = (imageUrl: string): string => {
-    return "This image appears to be a visual representation of content. The details shown in the image may include graphical elements, text, or other visual information that relates to the subject matter. Without more context, it's difficult to provide a specific explanation of what the image contains.";
+    return "This image shows visual content that may contain text, diagrams, or illustrations relevant to the subject matter. The key elements appear to relate to the main topic, with visual cues highlighting important information.";
   };
 
   const handleGenerateSummary = () => {
